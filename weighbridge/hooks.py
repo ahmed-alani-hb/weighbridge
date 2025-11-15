@@ -6,12 +6,16 @@ app_email = "botan.b.abdullah@gmail.com"
 app_license = "mit"
 # required_apps = []
 
+# Fixtures
+# --------
+fixtures = ["Custom Field"]
+
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/weighbridge/css/weighbridge.css"
-# app_include_js = "/assets/weighbridge/js/weighbridge.js"
+app_include_js = "/assets/weighbridge/js/weighbridge.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/weighbridge/css/weighbridge.css"
@@ -28,7 +32,10 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+    "Delivery Note": "public/js/delivery_note.js",
+    "Purchase Receipt": "public/js/purchase_receipt.js"
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
