@@ -1,6 +1,6 @@
 [
     {
-        "dt": "Custom Field",
+        "dt": "Delivery Note",
         "fieldname": "weighbridge_section",
         "fieldtype": "Section Break",
         "label": "Weighbridge Details",
@@ -10,7 +10,7 @@
         "name": "Delivery Note-weighbridge_section"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Delivery Note",
         "fieldname": "entry_weight",
         "fieldtype": "Float",
         "label": "Entry Weight (kg)",
@@ -20,7 +20,7 @@
         "name": "Delivery Note-entry_weight"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Delivery Note",
         "fieldname": "entry_weight_button",
         "fieldtype": "Button",
         "label": "Read Entry Weight",
@@ -29,7 +29,7 @@
         "name": "Delivery Note-entry_weight_button"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Delivery Note",
         "fieldname": "weighbridge_column_break",
         "fieldtype": "Column Break",
         "insert_after": "entry_weight_button",
@@ -37,7 +37,7 @@
         "name": "Delivery Note-weighbridge_column_break"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Delivery Note",
         "fieldname": "exit_weight",
         "fieldtype": "Float",
         "label": "Exit Weight (kg)",
@@ -47,7 +47,7 @@
         "name": "Delivery Note-exit_weight"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Delivery Note",
         "fieldname": "exit_weight_button",
         "fieldtype": "Button",
         "label": "Read Exit Weight",
@@ -56,7 +56,7 @@
         "name": "Delivery Note-exit_weight_button"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Delivery Note",
         "fieldname": "weighbridge_column_break_2",
         "fieldtype": "Column Break",
         "insert_after": "exit_weight_button",
@@ -64,7 +64,7 @@
         "name": "Delivery Note-weighbridge_column_break_2"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Delivery Note",
         "fieldname": "net_weight",
         "fieldtype": "Float",
         "label": "Net Weight (kg)",
@@ -75,7 +75,7 @@
         "name": "Delivery Note-net_weight"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Purchase Receipt",
         "fieldname": "weighbridge_section",
         "fieldtype": "Section Break",
         "label": "Weighbridge Details",
@@ -85,7 +85,7 @@
         "name": "Purchase Receipt-weighbridge_section"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Purchase Receipt",
         "fieldname": "entry_weight",
         "fieldtype": "Float",
         "label": "Entry Weight (kg)",
@@ -95,7 +95,7 @@
         "name": "Purchase Receipt-entry_weight"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Purchase Receipt",
         "fieldname": "entry_weight_button",
         "fieldtype": "Button",
         "label": "Read Entry Weight",
@@ -104,7 +104,7 @@
         "name": "Purchase Receipt-entry_weight_button"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Purchase Receipt",
         "fieldname": "weighbridge_column_break",
         "fieldtype": "Column Break",
         "insert_after": "entry_weight_button",
@@ -112,7 +112,7 @@
         "name": "Purchase Receipt-weighbridge_column_break"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Purchase Receipt",
         "fieldname": "exit_weight",
         "fieldtype": "Float",
         "label": "Exit Weight (kg)",
@@ -122,7 +122,7 @@
         "name": "Purchase Receipt-exit_weight"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Purchase Receipt",
         "fieldname": "exit_weight_button",
         "fieldtype": "Button",
         "label": "Read Exit Weight",
@@ -131,7 +131,7 @@
         "name": "Purchase Receipt-exit_weight_button"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Purchase Receipt",
         "fieldname": "weighbridge_column_break_2",
         "fieldtype": "Column Break",
         "insert_after": "exit_weight_button",
@@ -139,7 +139,7 @@
         "name": "Purchase Receipt-weighbridge_column_break_2"
     },
     {
-        "dt": "Custom Field",
+        "dt": "Purchase Receipt",
         "fieldname": "net_weight",
         "fieldtype": "Float",
         "label": "Net Weight (kg)",
