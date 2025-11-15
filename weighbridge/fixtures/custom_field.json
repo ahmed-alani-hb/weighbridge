@@ -1,0 +1,152 @@
+[
+    {
+        "dt": "Delivery Note",
+        "fieldname": "weighbridge_section",
+        "fieldtype": "Section Break",
+        "label": "Weighbridge Details",
+        "insert_after": "items",
+        "collapsible": 1,
+        "doctype": "Custom Field",
+        "name": "Delivery Note-weighbridge_section"
+    },
+    {
+        "dt": "Delivery Note",
+        "fieldname": "entry_weight",
+        "fieldtype": "Float",
+        "label": "Entry Weight (kg)",
+        "insert_after": "weighbridge_section",
+        "precision": "2",
+        "doctype": "Custom Field",
+        "name": "Delivery Note-entry_weight"
+    },
+    {
+        "dt": "Delivery Note",
+        "fieldname": "entry_weight_button",
+        "fieldtype": "Button",
+        "label": "Read Entry Weight",
+        "insert_after": "entry_weight",
+        "doctype": "Custom Field",
+        "name": "Delivery Note-entry_weight_button"
+    },
+    {
+        "dt": "Delivery Note",
+        "fieldname": "weighbridge_column_break",
+        "fieldtype": "Column Break",
+        "insert_after": "entry_weight_button",
+        "doctype": "Custom Field",
+        "name": "Delivery Note-weighbridge_column_break"
+    },
+    {
+        "dt": "Delivery Note",
+        "fieldname": "exit_weight",
+        "fieldtype": "Float",
+        "label": "Exit Weight (kg)",
+        "insert_after": "weighbridge_column_break",
+        "precision": "2",
+        "doctype": "Custom Field",
+        "name": "Delivery Note-exit_weight"
+    },
+    {
+        "dt": "Delivery Note",
+        "fieldname": "exit_weight_button",
+        "fieldtype": "Button",
+        "label": "Read Exit Weight",
+        "insert_after": "exit_weight",
+        "doctype": "Custom Field",
+        "name": "Delivery Note-exit_weight_button"
+    },
+    {
+        "dt": "Delivery Note",
+        "fieldname": "weighbridge_column_break_2",
+        "fieldtype": "Column Break",
+        "insert_after": "exit_weight_button",
+        "doctype": "Custom Field",
+        "name": "Delivery Note-weighbridge_column_break_2"
+    },
+    {
+        "dt": "Delivery Note",
+        "fieldname": "net_weight",
+        "fieldtype": "Float",
+        "label": "Net Weight (kg)",
+        "insert_after": "weighbridge_column_break_2",
+        "precision": "2",
+        "read_only": 1,
+        "doctype": "Custom Field",
+        "name": "Delivery Note-net_weight"
+    },
+    {
+        "dt": "Purchase Receipt",
+        "fieldname": "weighbridge_section",
+        "fieldtype": "Section Break",
+        "label": "Weighbridge Details",
+        "insert_after": "items",
+        "collapsible": 1,
+        "doctype": "Custom Field",
+        "name": "Purchase Receipt-weighbridge_section"
+    },
+    {
+        "dt": "Purchase Receipt",
+        "fieldname": "entry_weight",
+        "fieldtype": "Float",
+        "label": "Entry Weight (kg)",
+        "insert_after": "weighbridge_section",
+        "precision": "2",
+        "doctype": "Custom Field",
+        "name": "Purchase Receipt-entry_weight"
+    },
+    {
+        "dt": "Purchase Receipt",
+        "fieldname": "entry_weight_button",
+        "fieldtype": "Button",
+        "label": "Read Entry Weight",
+        "insert_after": "entry_weight",
+        "doctype": "Custom Field",
+        "name": "Purchase Receipt-entry_weight_button"
+    },
+    {
+        "dt": "Purchase Receipt",
+        "fieldname": "weighbridge_column_break",
+        "fieldtype": "Column Break",
+        "insert_after": "entry_weight_button",
+        "doctype": "Custom Field",
+        "name": "Purchase Receipt-weighbridge_column_break"
+    },
+    {
+        "dt": "Purchase Receipt",
+        "fieldname": "exit_weight",
+        "fieldtype": "Float",
+        "label": "Exit Weight (kg)",
+        "insert_after": "weighbridge_column_break",
+        "precision": "2",
+        "doctype": "Custom Field",
+        "name": "Purchase Receipt-exit_weight"
+    },
+    {
+        "dt": "Purchase Receipt",
+        "fieldname": "exit_weight_button",
+        "fieldtype": "Button",
+        "label": "Read Exit Weight",
+        "insert_after": "exit_weight",
+        "doctype": "Custom Field",
+        "name": "Purchase Receipt-exit_weight_button"
+    },
+    {
+        "dt": "Purchase Receipt",
+        "fieldname": "weighbridge_column_break_2",
+        "fieldtype": "Column Break",
+        "insert_after": "exit_weight_button",
+        "doctype": "Custom Field",
+        "name": "Purchase Receipt-weighbridge_column_break_2"
+    },
+    {
+        "dt": "Purchase Receipt",
+        "fieldname": "net_weight",
+        "fieldtype": "Float",
+        "label": "Net Weight (kg)",
+        "insert_after": "weighbridge_column_break_2",
+        "precision": "2",
+        "read_only": 1,
+        "doctype": "Custom Field",
+        "name": "Purchase Receipt-net_weight"
+    }
+]
