@@ -18,7 +18,6 @@ weighbridge = {
 
         let port = null;
         let reader = null;
-        let readableStreamClosed = null;
         let keepReading = true;
 
         try {
@@ -45,9 +44,8 @@ weighbridge = {
                 indicator: 'blue'
             }, 3);
 
-            const textDecoder = new TextDecoderStream();
-            readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-            reader = textDecoder.readable.getReader();
+            const textDecoder = new TextDecoder();
+            reader = port.readable.getReader();
 
             console.log('Reading from serial port...');
             let receivedData = '';
@@ -67,8 +65,9 @@ weighbridge = {
                     }
 
                     // Append the received chunk to the receivedData
-                    receivedData += value;
-                    console.log('Partial data received:', value);
+                    const decodedValue = textDecoder.decode(value, { stream: true });
+                    receivedData += decodedValue;
+                    console.log('Partial data received:', decodedValue);
 
                     // Check if the receivedData contains the complete message
                     if (receivedData.includes('\n')) {
@@ -138,10 +137,6 @@ weighbridge = {
                     } catch (releaseError) {
                         console.log('Reader release error:', releaseError);
                     }
-                }
-                if (readableStreamClosed) {
-                    await readableStreamClosed.catch(() => { /* Ignore errors */ });
-                    console.log('Stream closed');
                 }
                 if (port) {
                     await port.close();
