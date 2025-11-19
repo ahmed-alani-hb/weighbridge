@@ -18,6 +18,8 @@ weighbridge = {
 
         let port = null;
         let reader = null;
+        let readableStreamClosed = null;
+        let keepReading = true;
 
         try {
             console.log('Requesting serial port...');
@@ -25,6 +27,14 @@ weighbridge = {
             // Prompt user to select a serial port
             port = await navigator.serial.requestPort();
             console.log('Serial port selected:', port);
+
+            // Check if port is already open
+            if (port.readable) {
+                console.log('Port is already open, closing it first...');
+                await port.close();
+                // Small delay to ensure port is fully closed
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
 
             // Open the serial port with baud rate 9600
             await port.open({ baudRate: 9600 });
@@ -36,26 +46,23 @@ weighbridge = {
             }, 3);
 
             const textDecoder = new TextDecoderStream();
-            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
             reader = textDecoder.readable.getReader();
 
             console.log('Reading from serial port...');
             let receivedData = '';
-            let weight_found = false;
-            let timeout_id = null;
 
-            // Create a promise that rejects on timeout
-            const timeoutPromise = new Promise((_, reject) => {
-                timeout_id = setTimeout(() => {
-                    reject(new Error('Timeout: No weight data received within 10 seconds'));
-                }, 10000);
-            });
+            // Set a timeout to avoid infinite reading
+            const timeoutId = setTimeout(() => {
+                keepReading = false;
+                reader.cancel().catch(() => {});
+            }, 10000); // 10 second timeout
 
-            // Create a promise that resolves when weight is found
-            const readPromise = (async () => {
-                while (true) {
+            try {
+                while (keepReading) {
                     const { value, done } = await reader.read();
                     if (done) {
+                        console.log('Reader done');
                         break;
                     }
 
@@ -86,18 +93,23 @@ weighbridge = {
                             // Calculate net weight if both entry and exit weights are available
                             weighbridge.calculate_net_weight(frm);
 
-                            return weight; // Success
+                            clearTimeout(timeoutId);
+                            keepReading = false; // Exit the loop
+                            break;
                         }
                         receivedData = ''; // Clear the receivedData for the next message
                     }
                 }
-            })();
+            } catch (readError) {
+                console.log('Read error:', readError);
+                throw readError;
+            } finally {
+                clearTimeout(timeoutId);
+            }
 
-            // Race between reading and timeout
-            await Promise.race([readPromise, timeoutPromise]);
-
-            // Clear timeout if we got here successfully
-            if (timeout_id) clearTimeout(timeout_id);
+            if (!receivedData.match(/\d+/) && keepReading === false) {
+                throw new Error('Timeout: No weight data received within 10 seconds');
+            }
 
         } catch (error) {
             console.log('Error:', error);
@@ -107,19 +119,30 @@ weighbridge = {
                 message: __('Error: {0}', [error.message || error])
             });
         } finally {
-            // Always cleanup reader and port
+            // Always cleanup reader and port in the correct order
             try {
                 if (reader) {
-                    await reader.cancel();
                     reader.releaseLock();
                     console.log('Reader released');
                 }
-                if (port && port.readable) {
+                if (readableStreamClosed) {
+                    await readableStreamClosed.catch(() => { /* Ignore errors */ });
+                    console.log('Stream closed');
+                }
+                if (port) {
                     await port.close();
                     console.log('Serial port closed');
                 }
             } catch (cleanupError) {
                 console.log('Cleanup error:', cleanupError);
+                // Force close if there's an error
+                try {
+                    if (port) {
+                        await port.close();
+                    }
+                } catch (e) {
+                    console.log('Force close failed:', e);
+                }
             }
         }
     },
