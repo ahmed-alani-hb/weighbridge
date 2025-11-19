@@ -18,7 +18,6 @@ weighbridge = {
 
         let port = null;
         let reader = null;
-        let readableStreamClosed = null;
         let keepReading = true;
 
         try {
@@ -45,9 +44,8 @@ weighbridge = {
                 indicator: 'blue'
             }, 3);
 
-            const textDecoder = new TextDecoderStream();
-            readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-            reader = textDecoder.readable.getReader();
+            const textDecoder = new TextDecoder();
+            reader = port.readable.getReader();
 
             console.log('Reading from serial port...');
             let receivedData = '';
@@ -55,7 +53,9 @@ weighbridge = {
             // Set a timeout to avoid infinite reading
             const timeoutId = setTimeout(() => {
                 keepReading = false;
-                reader.cancel().catch(() => {});
+                if (reader) {
+                    reader.cancel().catch(() => {});
+                }
             }, 10000); // 10 second timeout
 
             try {
@@ -67,8 +67,9 @@ weighbridge = {
                     }
 
                     // Append the received chunk to the receivedData
-                    receivedData += value;
-                    console.log('Partial data received:', value);
+                    const decodedValue = textDecoder.decode(value, { stream: true });
+                    receivedData += decodedValue;
+                    console.log('Partial data received:', decodedValue);
 
                     // Check if the receivedData contains the complete message
                     if (receivedData.includes('\n')) {
@@ -105,6 +106,23 @@ weighbridge = {
                 throw readError;
             } finally {
                 clearTimeout(timeoutId);
+                if (reader) {
+                    try {
+                        await reader.cancel();
+                        console.log('Reader cancelled');
+                    } catch (cancelError) {
+                        console.log('Reader cancel error:', cancelError);
+                    }
+
+                    try {
+                        reader.releaseLock();
+                        console.log('Reader released');
+                    } catch (releaseError) {
+                        console.log('Reader release error:', releaseError);
+                    }
+
+                    reader = null;
+                }
             }
 
             if (!receivedData.match(/\d+/) && keepReading === false) {
@@ -121,14 +139,6 @@ weighbridge = {
         } finally {
             // Always cleanup reader and port in the correct order
             try {
-                if (reader) {
-                    reader.releaseLock();
-                    console.log('Reader released');
-                }
-                if (readableStreamClosed) {
-                    await readableStreamClosed.catch(() => { /* Ignore errors */ });
-                    console.log('Stream closed');
-                }
                 if (port) {
                     await port.close();
                     console.log('Serial port closed');
