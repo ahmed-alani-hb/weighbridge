@@ -122,8 +122,22 @@ weighbridge = {
             // Always cleanup reader and port in the correct order
             try {
                 if (reader) {
-                    reader.releaseLock();
-                    console.log('Reader released');
+                    try {
+                        // Always cancel the reader before releasing the lock to avoid
+                        // "Releasing Default Reader" errors that surface in browsers
+                        // when a stream is still locked.
+                        await reader.cancel();
+                        console.log('Reader cancelled');
+                    } catch (cancelError) {
+                        console.log('Reader cancel error:', cancelError);
+                    }
+
+                    try {
+                        reader.releaseLock();
+                        console.log('Reader released');
+                    } catch (releaseError) {
+                        console.log('Reader release error:', releaseError);
+                    }
                 }
                 if (readableStreamClosed) {
                     await readableStreamClosed.catch(() => { /* Ignore errors */ });
