@@ -44,16 +44,17 @@ weighbridge = {
                 indicator: 'blue'
             }, 3);
 
-            const textDecoder = new TextDecoder();
+            const textDecoder = new TextDecoder('ascii');
             reader = port.readable.getReader();
 
             console.log('Reading from serial port...');
-            let receivedData = '';
+            let byteBuffer = [];
             let lastWeight = null;
+            let lastPrefix = null;
             let repeatCount = 0;
             let weightCaptured = false;
 
-            // Number of consecutive identical weights required before we accept the value
+            // Number of consecutive identical stable weights required before we accept the value
             const repeatThreshold = 2;
 
             // Set a timeout to avoid infinite reading
@@ -72,52 +73,69 @@ weighbridge = {
                         break;
                     }
 
-                    // Append the received chunk to the receivedData
-                    const decodedValue = textDecoder.decode(value, { stream: true });
-                    receivedData += decodedValue;
-                    console.log('Partial data received:', decodedValue);
+                    if (!value || value.length === 0) {
+                        continue;
+                    }
 
-                    // Check if the receivedData contains the complete message
-                    if (receivedData.includes('\n')) {
-                        const completeData = receivedData.trim();
-                        console.log('Complete data received:', completeData);
+                    // Append bytes to buffer
+                    for (let i = 0; i < value.length; i++) {
+                        byteBuffer.push(value[i]);
+                    }
 
-                        // Extract the weight from the complete data
-                        // Pattern matches formats like ,+12345kg or similar
-                        const weightMatch = completeData.match(/[ ,\s]\+?(\d+(?:\.\d+)?)\s*kg/i);
-                        if (weightMatch) {
-                            const weight = parseFloat(weightMatch[1]);
+                    // Process complete frames delimited by 0x0d (carriage return)
+                    let delimiterIndex = byteBuffer.indexOf(0x0d);
+                    while (delimiterIndex !== -1) {
+                        const frameBytes = byteBuffer.slice(0, delimiterIndex);
+                        byteBuffer = byteBuffer.slice(delimiterIndex + 1);
+                        delimiterIndex = byteBuffer.indexOf(0x0d);
 
-                            if (lastWeight !== null && weight === lastWeight) {
-                                repeatCount += 1;
-                            } else {
-                                lastWeight = weight;
-                                repeatCount = 1;
-                            }
-
-                            console.log('Extracted weight:', weight, 'repeat count:', repeatCount);
-
-                            if (repeatCount >= repeatThreshold) {
-                                // Accept the weight after it repeats enough times to indicate stability
-                                frm.set_value(target_field, weight);
-
-                                frappe.show_alert({
-                                    message: __('Weight captured: {0} kg', [weight]),
-                                    indicator: 'green'
-                                }, 5);
-
-                                // Calculate net weight if both entry and exit weights are available
-                                weighbridge.calculate_net_weight(frm);
-
-                                clearTimeout(timeoutId);
-                                keepReading = false; // Exit the loop
-                                weightCaptured = true;
-                                break;
-                            }
+                        if (frameBytes.length < 7) {
+                            // Not a full frame (expecting prefix + 6 chars)
+                            continue;
                         }
 
-                        // Clear the receivedData for the next message
-                        receivedData = '';
+                        const prefix = frameBytes[0];
+                        if (prefix !== 0x41 && prefix !== 0x43) {
+                            // Unknown prefix
+                            continue;
+                        }
+
+                        const weightText = textDecoder.decode(new Uint8Array(frameBytes.slice(1))).trim();
+                        if (!weightText) {
+                            continue;
+                        }
+
+                        const weightValue = parseFloat(weightText);
+                        if (Number.isNaN(weightValue)) {
+                            continue;
+                        }
+
+                        if (lastWeight !== null && lastWeight === weightValue && lastPrefix === prefix) {
+                            repeatCount += 1;
+                        } else {
+                            lastWeight = weightValue;
+                            lastPrefix = prefix;
+                            repeatCount = 1;
+                        }
+
+                        console.log('Frame prefix:', prefix === 0x41 ? 'A' : 'C', 'weight:', weightValue, 'repeat count:', repeatCount);
+
+                        // Only capture stable (prefix 'A') frames that repeat enough times
+                        if (prefix === 0x41 && repeatCount >= repeatThreshold) {
+                            frm.set_value(target_field, weightValue);
+
+                            frappe.show_alert({
+                                message: __('Weight captured: {0} kg', [weightValue]),
+                                indicator: 'green'
+                            }, 5);
+
+                            weighbridge.calculate_net_weight(frm);
+
+                            clearTimeout(timeoutId);
+                            keepReading = false;
+                            weightCaptured = true;
+                            break;
+                        }
                     }
                 }
             } catch (readError) {
