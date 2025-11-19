@@ -16,11 +16,14 @@ weighbridge = {
             return;
         }
 
+        let port = null;
+        let reader = null;
+
         try {
             console.log('Requesting serial port...');
 
             // Prompt user to select a serial port
-            const port = await navigator.serial.requestPort();
+            port = await navigator.serial.requestPort();
             console.log('Serial port selected:', port);
 
             // Open the serial port with baud rate 9600
@@ -34,69 +37,67 @@ weighbridge = {
 
             const textDecoder = new TextDecoderStream();
             const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-            const reader = textDecoder.readable.getReader();
+            reader = textDecoder.readable.getReader();
 
             console.log('Reading from serial port...');
             let receivedData = '';
             let weight_found = false;
+            let timeout_id = null;
 
-            // Set a timeout to avoid infinite reading
-            const timeout = setTimeout(async () => {
-                if (!weight_found) {
-                    reader.releaseLock();
-                    await port.close();
-                    frappe.msgprint({
-                        title: __('Timeout'),
-                        indicator: 'orange',
-                        message: __('No weight data received within timeout period. Please try again.')
-                    });
-                }
-            }, 10000); // 10 second timeout
+            // Create a promise that rejects on timeout
+            const timeoutPromise = new Promise((_, reject) => {
+                timeout_id = setTimeout(() => {
+                    reject(new Error('Timeout: No weight data received within 10 seconds'));
+                }, 10000);
+            });
 
-            while (!weight_found) {
-                const { value, done } = await reader.read();
-                if (done) {
-                    reader.releaseLock();
-                    break;
-                }
-
-                // Append the received chunk to the receivedData
-                receivedData += value;
-                console.log('Partial data received:', value);
-
-                // Check if the receivedData contains the complete message
-                if (receivedData.includes('\n')) {
-                    const completeData = receivedData.trim();
-                    console.log('Complete data received:', completeData);
-
-                    // Extract the weight from the complete data
-                    // Pattern matches formats like ",+12345kg" or similar
-                    const weightMatch = completeData.match(/[,\s]\+?(\d+(?:\.\d+)?)\s*kg/i);
-                    if (weightMatch) {
-                        const weight = parseFloat(weightMatch[1]);
-                        console.log('Extracted weight:', weight);
-
-                        // Set the extracted weight in the target field
-                        frm.set_value(target_field, weight);
-
-                        weight_found = true;
-                        clearTimeout(timeout);
-
-                        frappe.show_alert({
-                            message: __('Weight captured: {0} kg', [weight]),
-                            indicator: 'green'
-                        }, 5);
-
-                        // Calculate net weight if both entry and exit weights are available
-                        weighbridge.calculate_net_weight(frm);
+            // Create a promise that resolves when weight is found
+            const readPromise = (async () => {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) {
+                        break;
                     }
-                    receivedData = ''; // Clear the receivedData for the next message
-                }
-            }
 
-            await readableStreamClosed.catch(() => { /* Ignore the error */ });
-            await port.close();
-            console.log('Serial port closed');
+                    // Append the received chunk to the receivedData
+                    receivedData += value;
+                    console.log('Partial data received:', value);
+
+                    // Check if the receivedData contains the complete message
+                    if (receivedData.includes('\n')) {
+                        const completeData = receivedData.trim();
+                        console.log('Complete data received:', completeData);
+
+                        // Extract the weight from the complete data
+                        // Pattern matches formats like ",+12345kg" or similar
+                        const weightMatch = completeData.match(/[,\s]\+?(\d+(?:\.\d+)?)\s*kg/i);
+                        if (weightMatch) {
+                            const weight = parseFloat(weightMatch[1]);
+                            console.log('Extracted weight:', weight);
+
+                            // Set the extracted weight in the target field
+                            frm.set_value(target_field, weight);
+
+                            frappe.show_alert({
+                                message: __('Weight captured: {0} kg', [weight]),
+                                indicator: 'green'
+                            }, 5);
+
+                            // Calculate net weight if both entry and exit weights are available
+                            weighbridge.calculate_net_weight(frm);
+
+                            return weight; // Success
+                        }
+                        receivedData = ''; // Clear the receivedData for the next message
+                    }
+                }
+            })();
+
+            // Race between reading and timeout
+            await Promise.race([readPromise, timeoutPromise]);
+
+            // Clear timeout if we got here successfully
+            if (timeout_id) clearTimeout(timeout_id);
 
         } catch (error) {
             console.log('Error:', error);
@@ -105,6 +106,21 @@ weighbridge = {
                 indicator: 'red',
                 message: __('Error: {0}', [error.message || error])
             });
+        } finally {
+            // Always cleanup reader and port
+            try {
+                if (reader) {
+                    await reader.cancel();
+                    reader.releaseLock();
+                    console.log('Reader released');
+                }
+                if (port && port.readable) {
+                    await port.close();
+                    console.log('Serial port closed');
+                }
+            } catch (cleanupError) {
+                console.log('Cleanup error:', cleanupError);
+            }
         }
     },
 
