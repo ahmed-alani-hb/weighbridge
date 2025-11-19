@@ -18,7 +18,6 @@ weighbridge = {
 
         let port = null;
         let reader = null;
-        let readableStreamClosed = null;
         let keepReading = true;
 
         try {
@@ -45,17 +44,24 @@ weighbridge = {
                 indicator: 'blue'
             }, 3);
 
-            const textDecoder = new TextDecoderStream();
-            readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-            reader = textDecoder.readable.getReader();
+            const textDecoder = new TextDecoder();
+            reader = port.readable.getReader();
 
             console.log('Reading from serial port...');
             let receivedData = '';
+            let lastWeight = null;
+            let repeatCount = 0;
+            let weightCaptured = false;
+
+            // Number of consecutive identical weights required before we accept the value
+            const repeatThreshold = 2;
 
             // Set a timeout to avoid infinite reading
             const timeoutId = setTimeout(() => {
                 keepReading = false;
-                reader.cancel().catch(() => {});
+                if (reader) {
+                    reader.cancel().catch(() => {});
+                }
             }, 10000); // 10 second timeout
 
             try {
@@ -67,8 +73,9 @@ weighbridge = {
                     }
 
                     // Append the received chunk to the receivedData
-                    receivedData += value;
-                    console.log('Partial data received:', value);
+                    const decodedValue = textDecoder.decode(value, { stream: true });
+                    receivedData += decodedValue;
+                    console.log('Partial data received:', decodedValue);
 
                     // Check if the receivedData contains the complete message
                     if (receivedData.includes('\n')) {
@@ -76,28 +83,41 @@ weighbridge = {
                         console.log('Complete data received:', completeData);
 
                         // Extract the weight from the complete data
-                        // Pattern matches formats like ",+12345kg" or similar
-                        const weightMatch = completeData.match(/[,\s]\+?(\d+(?:\.\d+)?)\s*kg/i);
+                        // Pattern matches formats like ,+12345kg or similar
+                        const weightMatch = completeData.match(/[ ,\s]\+?(\d+(?:\.\d+)?)\s*kg/i);
                         if (weightMatch) {
                             const weight = parseFloat(weightMatch[1]);
-                            console.log('Extracted weight:', weight);
 
-                            // Set the extracted weight in the target field
-                            frm.set_value(target_field, weight);
+                            if (lastWeight !== null && weight === lastWeight) {
+                                repeatCount += 1;
+                            } else {
+                                lastWeight = weight;
+                                repeatCount = 1;
+                            }
 
-                            frappe.show_alert({
-                                message: __('Weight captured: {0} kg', [weight]),
-                                indicator: 'green'
-                            }, 5);
+                            console.log('Extracted weight:', weight, 'repeat count:', repeatCount);
 
-                            // Calculate net weight if both entry and exit weights are available
-                            weighbridge.calculate_net_weight(frm);
+                            if (repeatCount >= repeatThreshold) {
+                                // Accept the weight after it repeats enough times to indicate stability
+                                frm.set_value(target_field, weight);
 
-                            clearTimeout(timeoutId);
-                            keepReading = false; // Exit the loop
-                            break;
+                                frappe.show_alert({
+                                    message: __('Weight captured: {0} kg', [weight]),
+                                    indicator: 'green'
+                                }, 5);
+
+                                // Calculate net weight if both entry and exit weights are available
+                                weighbridge.calculate_net_weight(frm);
+
+                                clearTimeout(timeoutId);
+                                keepReading = false; // Exit the loop
+                                weightCaptured = true;
+                                break;
+                            }
                         }
-                        receivedData = ''; // Clear the receivedData for the next message
+
+                        // Clear the receivedData for the next message
+                        receivedData = '';
                     }
                 }
             } catch (readError) {
@@ -105,9 +125,26 @@ weighbridge = {
                 throw readError;
             } finally {
                 clearTimeout(timeoutId);
+                if (reader) {
+                    try {
+                        await reader.cancel();
+                        console.log('Reader cancelled');
+                    } catch (cancelError) {
+                        console.log('Reader cancel error:', cancelError);
+                    }
+
+                    try {
+                        reader.releaseLock();
+                        console.log('Reader released');
+                    } catch (releaseError) {
+                        console.log('Reader release error:', releaseError);
+                    }
+
+                    reader = null;
+                }
             }
 
-            if (!receivedData.match(/\d+/) && keepReading === false) {
+            if (!weightCaptured && keepReading === false) {
                 throw new Error('Timeout: No weight data received within 10 seconds');
             }
 
@@ -121,14 +158,6 @@ weighbridge = {
         } finally {
             // Always cleanup reader and port in the correct order
             try {
-                if (reader) {
-                    reader.releaseLock();
-                    console.log('Reader released');
-                }
-                if (readableStreamClosed) {
-                    await readableStreamClosed.catch(() => { /* Ignore errors */ });
-                    console.log('Stream closed');
-                }
                 if (port) {
                     await port.close();
                     console.log('Serial port closed');
