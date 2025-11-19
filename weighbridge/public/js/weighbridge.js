@@ -53,7 +53,9 @@ weighbridge = {
             // Set a timeout to avoid infinite reading
             const timeoutId = setTimeout(() => {
                 keepReading = false;
-                reader.cancel().catch(() => {});
+                if (reader) {
+                    reader.cancel().catch(() => {});
+                }
             }, 10000); // 10 second timeout
 
             try {
@@ -104,6 +106,23 @@ weighbridge = {
                 throw readError;
             } finally {
                 clearTimeout(timeoutId);
+                if (reader) {
+                    try {
+                        await reader.cancel();
+                        console.log('Reader cancelled');
+                    } catch (cancelError) {
+                        console.log('Reader cancel error:', cancelError);
+                    }
+
+                    try {
+                        reader.releaseLock();
+                        console.log('Reader released');
+                    } catch (releaseError) {
+                        console.log('Reader release error:', releaseError);
+                    }
+
+                    reader = null;
+                }
             }
 
             if (!receivedData.match(/\d+/) && keepReading === false) {
@@ -120,24 +139,6 @@ weighbridge = {
         } finally {
             // Always cleanup reader and port in the correct order
             try {
-                if (reader) {
-                    try {
-                        // Always cancel the reader before releasing the lock to avoid
-                        // "Releasing Default Reader" errors that surface in browsers
-                        // when a stream is still locked.
-                        await reader.cancel();
-                        console.log('Reader cancelled');
-                    } catch (cancelError) {
-                        console.log('Reader cancel error:', cancelError);
-                    }
-
-                    try {
-                        reader.releaseLock();
-                        console.log('Reader released');
-                    } catch (releaseError) {
-                        console.log('Reader release error:', releaseError);
-                    }
-                }
                 if (port) {
                     await port.close();
                     console.log('Serial port closed');
